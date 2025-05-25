@@ -46,7 +46,7 @@ def classifier(
     # Initialize the classifier
     classifier = Classifier.Classifier(input_dim=input_dim, num_classes=num_classes).to(device)
     # classifier.load_state_dict(torch.load('classifier.pth', map_location=device))  # Load pre-trained model if available
-    # Loss and optimizer
+    # Loss and optimizernch
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(classifier.parameters(), lr=lr)
     acc = Accuracy(task="multiclass", num_classes=num_classes).to(device)
