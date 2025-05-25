@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Install Python dependencies for GAN project",
+			"command": "pip install -r requirements.txt",
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}

@@ -1,0 +1,6 @@
+# Requirements for GAN Project
+
+torch
+torchvision
+matplotlib
+numpy
