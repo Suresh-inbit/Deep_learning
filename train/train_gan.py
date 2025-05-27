@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # sys.path.append("..")
-from models.generator import Generator
+from models.generator import Generator_cnn as Generator
 from models.discriminator import Discriminator
 import torchvision
 from torchvision4ad.datasets import MVTecAD
@@ -98,6 +98,7 @@ def train_gan(
                 save_image(gen_imgs.data[:25], f"images/{epoch}_{i}.png", nrow=5)
 
     # Plot losses after training
+    torch.save(generator.state_dict(), "generator.pth")
     plt.figure(figsize=(10,5))
     plt.plot(g_losses, label='Generator Loss')
     plt.plot(d_losses, label='Discriminator Loss')
@@ -108,6 +109,22 @@ def train_gan(
     plt.savefig('images/loss_curve.png')
     plt.close()
 
+def test_gan():
+    """
+    Test the trained GAN by generating images.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    noise_dim = 100
+    generator = Generator(noise_dim, (1, 28, 28)).to(device)
+    generator.load_state_dict(torch.load("generator.pth", map_location=device))
+    generator.eval()
+    with torch.no_grad():
+        z = torch.randn(25, noise_dim, device=device)
+        gen_imgs = generator(z)
+        save_image(gen_imgs.data, "images/generated_images.png", nrow=5)
+        plot_images(gen_imgs, 5)
+        print("Generated images saved to 'images/generated_images.png'")
+
 def save_image(tensor, filename, nrow=5):
     """
     Save a grid of images.
@@ -116,5 +133,17 @@ def save_image(tensor, filename, nrow=5):
     # ndarr = grid.mul(127.5).add(127.5).clamp(0,255).byte().cpu().numpy()
     plt.imsave(filename, np.transpose(grid.cpu().numpy(), (1,2,0)))
 
+def plot_images(images, n_rows):
+    """
+    Plot a grid of images.
+    """
+    plt.figure(figsize=(10, 10))
+    for i in range(n_rows * n_rows):
+        ax = plt.subplot(5, 5, i + 1)
+        plt.imshow(images[i].cpu().numpy().squeeze(), cmap='gray')
+        plt.axis('off')
+    plt.show()
+
 if __name__ == "__main__":
     train_gan(epochs=50)
+    test_gan()
