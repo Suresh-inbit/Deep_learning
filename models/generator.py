@@ -38,3 +38,25 @@ class Generator(nn.Module):
         # print(f"img shape: {img.shape}")
         img = img.view(z.size(0), *self.img_shape)
         return img
+class Generator_cnn(nn.Module):
+    def __init__(self, latent_dim = 128, image_shape=(1, 28, 28)):
+        super(Generator_cnn, self).__init__()
+        self.latent_dim = latent_dim
+        self.image_shape = image_shape
+        self.model = nn.Sequential(
+            nn.Conv2d(latent_dim, latent_dim * 4, kernel_size=4, stride=1, padding=1),
+            nn.BatchNorm2d(latent_dim * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(latent_dim * 4, latent_dim * 2, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(latent_dim * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(latent_dim * 2, latent_dim, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(latent_dim),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(latent_dim, image_shape[0], kernel_size=4, stride=2, padding=1),
+            nn.Tanh()
+        )
+    def forward(self, z):
+        img = self.model(z)
+        img = img.view(z.size(0), *self.image_shape)
+        return img
