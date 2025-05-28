@@ -39,24 +39,34 @@ class Generator(nn.Module):
         img = img.view(z.size(0), *self.img_shape)
         return img
 class Generator_cnn(nn.Module):
-    def __init__(self, latent_dim = 128, image_shape=(1, 28, 28)):
+    def __init__(self, latent_dim = 128, image_shape=(1, 28, 28), nz=128, ngf=28, nc=1):
         super(Generator_cnn, self).__init__()
         self.latent_dim = latent_dim
         self.image_shape = image_shape
-        self.model = nn.Sequential(
-            nn.Conv2d(latent_dim, latent_dim * 4, kernel_size=4, stride=1, padding=1),
-            nn.BatchNorm2d(latent_dim * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim * 4, latent_dim * 2, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(latent_dim * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim * 2, latent_dim, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim, image_shape[0], kernel_size=4, stride=2, padding=1),
+        if nz is None:
+            nz = latent_dim
+        self.main = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. ``(ngf*8) x 4 x 4``
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. ``(ngf*4) x 8 x 8``
+            nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. ``(ngf*2) x 16 x 16``
+            nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. ``(ngf) x 32 x 32``
+            nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
+            # state size. ``(nc) x 64 x 64``
         )
-    def forward(self, z):
-        img = self.model(z)
-        img = img.view(z.size(0), *self.image_shape)
-        return img
+
+    def forward(self, input):
+        return self.main(input)
