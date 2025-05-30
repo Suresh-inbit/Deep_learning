@@ -17,11 +17,13 @@ from models.discriminator import Discriminator
 import torchvision
 from torchvision4ad.datasets import MVTecAD
 
+def train_gan_cnn(epochs=50):
+    pass
 
 def train_gan(
     epochs=10,
     batch_size=64,
-    noise_dim=100,
+    noise_dim=128,
     lr=0.0002,
     device=None
 ):
@@ -34,7 +36,7 @@ def train_gan(
     # Data loader
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Grayscale(),
+        # transforms.Grayscale(),
         transforms.Normalize([0.5], [0.5]),
         # transforms.Resize((256, 256)),  # Reduce image size to save memory
     ])
@@ -44,6 +46,9 @@ def train_gan(
     )
     # print("size of images: ", dataloader.dataset[0][0].shape)
     img_shape = dataloader.dataset[0][0].shape
+    print(img_shape)
+    # exit(0)
+
     # batch_size = 2  # Reduce batch size to save memory
     # dataset = MVTecAD("MVTec", 'grid', train=True, transform=transform, download=True)
     # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -56,6 +61,7 @@ def train_gan(
     # print("size of images: ", img_shape)
     # exit(0)
     # Models
+
     generator = Generator(noise_dim, img_shape).to(device)
     discriminator = Discriminator(img_shape).to(device)
     print("number of parameters in generator: ", sum(p.numel() for p in generator.parameters()))
@@ -72,11 +78,11 @@ def train_gan(
             real_imgs = imgs.to(device)
             valid = torch.ones(imgs.size(0), 1, device=device)
             fake = torch.zeros(imgs.size(0), 1, device=device)
-
+            noise = torch.randn(64, 64, 1, 1, device=device)
             # Train Generator
             optimizer_G.zero_grad()
             z = torch.randn(imgs.size(0), noise_dim, device=device)
-            gen_imgs = generator(z)
+            gen_imgs = generator(noise)
             g_loss = adversarial_loss(discriminator(gen_imgs), valid)
             g_loss.backward()
             optimizer_G.step()
