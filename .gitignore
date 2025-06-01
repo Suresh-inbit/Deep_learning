@@ -1,4 +1,6 @@
 data/
 *.pth
 images/
-models/__pycache__/*.pyc
+models/__pycache__/
+MVTec/
+dcgan_faces_tutorial.ipynb
