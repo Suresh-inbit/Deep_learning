@@ -12,13 +12,103 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # sys.path.append("..")
-from models.generator import Generator_cnn as Generator
-from models.discriminator import Discriminator
+from models.generator_cnn import Generator_cnn 
+from models.generator import Generator
+# from models.discriminator import Discriminator
+from models.discriminator_cnn import Discriminator_cnn
 import torchvision
 from torchvision4ad.datasets import MVTecAD
 
-def train_gan_cnn(epochs=50):
-    pass
+def train_gan_cnn(epochs=50, batch_size=64, noise_dim=128, lr=0.0002):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Grayscale(),
+        transforms.Normalize([0.5], [0.5]),
+        transforms.Resize((256, 256)),  # Reduce image size to save memory
+    ])
+    dataloader = DataLoader(MVTecAD("MVTec", 'grid', train =True, transform=transform, download=True),
+                          batch_size=batch_size, shuffle=True, pin_memory=False, num_workers=4)
+    img_shape = dataloader.dataset[0][0].shape
+    print("size of images: ", img_shape)
+    # exit(0)
+    # Models
+    netG = Generator_cnn(noise_dim, img_shape).to(device)
+    netD = Discriminator_cnn(img_shape).to(device)
+    # print(generator)
+    # print("number of parameters in generator: ", sum(p.numel() for p in generator.parameters()))
+    loss_function = nn.BCELoss()
+    fixed_noise = torch.randn(batch_size, noise_dim, 1, 1, device=device)
+
+    print(fixed_noise.shape)
+    pred = netG(fixed_noise)
+    print("pred shape: ", pred.shape)
+    out = netD(pred)
+    print("out shape: ", out.shape, "Output : ", out[0])
+    # print(netD)
+    # exit(0)
+
+    loss = nn.BCELoss()
+
+    # Establish convention for real and fake labels during training
+    real_label = 1.
+    fake_label = 0.
+
+    # Setup Adam optimizers for both G and D
+    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.9, 0.999))
+    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.9, 0.999))
+
+    D_losses = []
+    G_losses = []
+    img_list = []
+    #Training Loop
+    for epoch in range(1):
+        for i, data in enumerate(dataloader, 0):
+
+            # (1) Update D network: 
+
+            netD.zero_grad()  # refresh the gradient 
+            img = data[0].to(device)
+            print("Image shape: ",img.shape)
+            b_size = img.size(0) # current batch size
+            label = torch.full((b_size,), real_label, dtype=torch.float, device=device) # all ones because training netD with real images
+            output = netD(img).view(-1)
+            print("Output_D shape :",output.shape, 'label shape:' , label.shape)
+            # exit(0)
+            error_real = loss(output, label)
+            error_real.backward()
+
+            noise = torch.randn(b_size, noise_dim, 1, 1, device=device)
+            fake = netG(noise)
+
+            label.fill_(fake_label)
+            # Classify all fake batch with D
+            output = netD(fake.detach()).view(-1)
+            error_fake = loss(output, label)
+            error_fake.backward()
+            error_D = error_fake + error_real # for tracking D error
+            optimizerD.step()
+
+            # (2) Update G network: 
+            netG.zero_grad()
+            label.fill_(real_label)  # fake labels are real for generator cost
+            output = netD(fake).view(-1)
+            error_G = loss(output, label)
+            error_G.backward()
+            optimizerG.step()
+
+            if i % 50 ==0:
+                print( f"Epoch :{epoch} [{i}/264] LOSS: {error_G} , {error_D}")
+            D_losses.append(error_D)
+            G_losses.append(error_G)
+
+        with torch.no_grad():
+            pred = netG(fixed_noise).detach().cpu()
+        img_list.append(pred)
+
+
+            
+
 
 def train_gan(
     epochs=10,
@@ -151,5 +241,5 @@ def plot_images(images, n_rows):
     plt.show()
 
 if __name__ == "__main__":
-    train_gan(epochs=50)
-    test_gan()
+    train_gan_cnn(epochs=50)
+    # test_gan()

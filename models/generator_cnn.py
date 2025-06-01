@@ -29,6 +29,9 @@ class Generator_cnn(nn.Module):
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. ``(ngf) x 64 x 64``
+            nn.ConvTranspose2d(ngf , ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
             nn.ConvTranspose2d(ngf, output_shape[0], 4, 2, 1, bias=False),
             nn.Tanh()
             # state size. ``(output_shape[0]) x 128 x 128``
