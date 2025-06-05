@@ -4,3 +4,4 @@ images/
 models/__pycache__/
 MVTec/
 dcgan_faces_tutorial.ipynb
+./mvtec_ad
