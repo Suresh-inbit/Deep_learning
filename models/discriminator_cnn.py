@@ -25,6 +25,52 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.model(input)
 
+class Discriminator_cnn2(nn.Module):
+    """
+    GAN Discriminator for 512x512 images.
+    """
+    def __init__(self, input_channels=1, ndf=64):
+        super(Discriminator_cnn2, self).__init__()
+        self.model = nn.Sequential(
+            # Input: (input_channels) x 512 x 512
+            nn.Conv2d(1, ndf, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf) x 256 x 256
+
+            nn.Conv2d(ndf, ndf * 2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf*2) x 128 x 128
+
+            nn.Conv2d(ndf * 2, ndf * 4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf*4) x 64 x 64
+
+            nn.Conv2d(ndf * 4, ndf * 8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf*8) x 32 x 32
+
+            nn.Conv2d(ndf * 8, ndf * 16, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 16),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf*16) x 16 x 16
+
+            nn.Conv2d(ndf * 16, ndf * 32, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 32),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Output: (ndf*32) x 8 x 8
+
+            nn.Conv2d(ndf * 32, 1, kernel_size=4, stride=1, padding=0, bias=False),
+            nn.Sigmoid()
+            # Output: 1 x 1 x 1
+        )
+
+    def forward(self, x):
+        return self.model(x).view(-1, 1)
+
+
 class Discriminator_cnn(nn.Module):
     """
     CNN Discriminator for GAN to classify 512x512 images as real or fake.

@@ -19,13 +19,14 @@ from models.discriminator_cnn import Discriminator_cnn
 import torchvision
 from torchvision4ad.datasets import MVTecAD
 torch.manual_seed(99)
-def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
+def train_gan_cnn(epochs=50, batch_size=1, noise_dim=256, lr=0.0002):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Grayscale(),
+        transforms.CenterCrop((256,256)),
         transforms.Normalize([0.5], [0.5]), # normalize image with mean and standard deviation.
-        transforms.Resize((512, 512)),  # Reduce image size to save memory
+        # transforms.Resize((512, 512)),  # Reduce image size to save memory
     ])
 
     def weights_init(m):
@@ -34,34 +35,34 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
 
             nn.init.normal_(m.weight.data, 0.0, 0.02)
         elif classname.find('BatchNorm') != -1:
-            nn.init.normal_(m.weight.data, 0.0, 0.02)
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
 
     dataloader = DataLoader(MVTecAD("MVTec", 'grid', train =True, transform=transform, download=True),
                           batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=4)
     sample_img = next(iter(dataloader))[0].to(device)
     img_shape = dataloader.dataset[0][0].shape
+    fixed_noise = torch.randn(batch_size, noise_dim, 1, 1, device=device)
     print("size of images: ", sample_img.shape)
     # exit(0)
     # Models
-    netG = Generator_cnn(noise_dim, img_shape, 128).to(device)
+    netG = Generator_cnn().to(device)
     netD = Discriminator_cnn(img_shape).to(device)
 
     netG.apply(weights_init)
     netD.apply(weights_init)
 
-    print(netG)
-    print("Parameter dtype: ",next(netG.parameters()).dtype)
-    print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
-    fixed_noise = torch.randn(batch_size, noise_dim, 1, 1, device=device)
-    print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
+    # print(netG)
+    # print("Parameter dtype: ",next(netG.parameters()).dtype)
+    # print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
+    # print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
 
-    print("Noise shape: ",fixed_noise.shape)
-    pred = netG(fixed_noise)
-    print("pred shape: ", pred.shape)
+    # print("Noise shape: ",fixed_noise.shape)
+    # pred = netG(fixed_noise)
+    # print("pred shape: ", pred.shape)
 
-    out = netD(sample_img)
-    print("out shape: ", out.shape, "Output : ", out[0])
+    # out = netD(sample_img)
+    # print("out shape: ", out.shape, "Output : ", out[0])
     # print(netD)
     # exit(0)
 
