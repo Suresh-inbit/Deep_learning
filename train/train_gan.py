@@ -12,19 +12,19 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # sys.path.append("..")
-from models.generator_cnn import Generator_cnn 
+from models.generator_cnn import Generator_512  
 from models.generator import Generator
 # from models.discriminator import Discriminator
-from models.discriminator_cnn import Discriminator_cnn
+from models.discriminator_cnn import Discriminator_512
 import torchvision
 from torchvision4ad.datasets import MVTecAD
 torch.manual_seed(99)
-def train_gan_cnn(epochs=50, batch_size=1, noise_dim=256, lr=0.0002):
+def train_gan_cnn(epochs=50, batch_size=1, noise_dim=128, lr=0.0002):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Grayscale(),
-        transforms.CenterCrop((256,256)),
+        transforms.CenterCrop((512,512)),
         transforms.Normalize([0.5], [0.5]), # normalize image with mean and standard deviation.
         # transforms.Resize((512, 512)),  # Reduce image size to save memory
     ])
@@ -46,8 +46,8 @@ def train_gan_cnn(epochs=50, batch_size=1, noise_dim=256, lr=0.0002):
     print("size of images: ", sample_img.shape)
     # exit(0)
     # Models
-    netG = Generator_cnn().to(device)
-    netD = Discriminator_cnn(img_shape).to(device)
+    netG = Generator_512().to(device)
+    netD = Discriminator_512().to(device)
 
     netG.apply(weights_init)
     netD.apply(weights_init)
