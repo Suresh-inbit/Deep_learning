@@ -5,3 +5,4 @@ models/__pycache__/
 Datasets/
 dcgan_faces_tutorial.ipynb
 saved_models/
+*/__pycache__/
