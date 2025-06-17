@@ -26,7 +26,7 @@ class Generator_256(nn.Module):
         return self.model(data)
     
 class Generator_512(nn.Module):
-    def __init__(self, latent_dim=128, nf=64):
+    def __init__(self, latent_dim=128, nf=55):
         super().__init__()
         self.block = lambda x, y: [
             nn.ConvTranspose2d(x, y, 4, 2, 1, bias=False),

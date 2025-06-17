@@ -46,6 +46,8 @@ def train_gan_cnn(epochs=50, batch_size=1, noise_dim=128, lr=0.0002):
     print("size of images: ", sample_img.shape)
     # exit(0)
     # Models
+    lr_G = 0.0004
+    lr_D = 0.0001
     netG = Generator_512().to(device)
     netD = Discriminator_512().to(device)
 
@@ -53,9 +55,9 @@ def train_gan_cnn(epochs=50, batch_size=1, noise_dim=128, lr=0.0002):
     netD.apply(weights_init)
 
     # print(netG)
-    # print("Parameter dtype: ",next(netG.parameters()).dtype)
-    # print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
-    # print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
+    print("Parameter dtype: ",next(netG.parameters()).dtype)
+    print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
+    print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
 
     # print("Noise shape: ",fixed_noise.shape)
     # pred = netG(fixed_noise)
@@ -63,8 +65,8 @@ def train_gan_cnn(epochs=50, batch_size=1, noise_dim=128, lr=0.0002):
 
     # out = netD(sample_img)
     # print("out shape: ", out.shape, "Output : ", out[0])
-    # print(netD)
-    # exit(0)
+    # print(netG)
+    exit(0)
 
     loss = nn.BCELoss()
 

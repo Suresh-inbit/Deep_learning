@@ -28,7 +28,7 @@ import torch
 import torch.nn as nn
 
 class Discriminator_512(nn.Module):
-    def __init__(self, nc=1, nf=64):
+    def __init__(self, nc=1, nf=12):
         super().__init__()
         # Input: (nc) x 512 x 512
         self.main = nn.Sequential(
