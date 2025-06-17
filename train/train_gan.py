@@ -5,25 +5,31 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
+from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
+from torchvision.transforms import v2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # sys.path.append("..")
-from models.generator_cnn import Generator_cnn 
+from utils.Dataset import Augmented
+from models.generator_cnn import Generator_512 as Generator_cnn 
 from models.generator import Generator
 # from models.discriminator import Discriminator
-from models.discriminator_cnn import Discriminator_cnn
+from models.discriminator_cnn import Discriminator_512 as Discriminator_cnn
 import torchvision
 from torchvision4ad.datasets import MVTecAD
 torch.manual_seed(99)
-def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0001, verbose = True):
+    device = "cuda:1" if torch.cuda.is_available() else "cpu"
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Grayscale(),
+        transforms.RandomHorizontalFlip(0.5), #probability
+        transforms.RandomVerticalFlip(0.5) ,
+        # v2.GaussianNoise(sigma=0.04),
         transforms.Normalize([0.5], [0.5]), # normalize image with mean and standard deviation.
         transforms.Resize((512, 512)),  # Reduce image size to save memory
     ])
@@ -36,35 +42,49 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 0.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
-
-    dataloader = DataLoader(MVTecAD("MVTec", 'grid', train =True, transform=transform, download=True),
-                          batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=4)
+    # dset = MVTecAD("MvTec", 'grid', train =True, transform=transform, download=True)
+    # dset = ImageFolder("Datasets/MvTec/", transform=transform)
+    dset = ImageFolder("Datasets/MvTec/")
+    dset = Augmented(dset, transform = transform)
+    dataloader = DataLoader(dset,
+                          batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=20)
     sample_img = next(iter(dataloader))[0].to(device)
-    img_shape = dataloader.dataset[0][0].shape
-    print("size of images: ", sample_img.shape)
+    img_info =False
+    if img_info:
+        img_shape = dataloader.dataset[2]
+        print(len(dataloader.dataset), len(dataloader))
+        print(sample_img[0][0])
+        # plt.imshow(img_shape[0][0])
+        plt.imsave("images/image3.png", sample_img[0][0].cpu().numpy(),cmap ='gray')
+        print(sample_img[0][0].cpu())
+        torchvision.utils.save_image(sample_img[0][0].cpu(), "images/image.png")
     # exit(0)
     # Models
-    netG = Generator_cnn(noise_dim, img_shape, 128).to(device)
-    netD = Discriminator_cnn(img_shape).to(device)
+    netG = Generator_cnn().to(device)
+    netD = Discriminator_cnn().to(device)
 
     netG.apply(weights_init)
     netD.apply(weights_init)
-
-    print(netG)
-    print("Parameter dtype: ",next(netG.parameters()).dtype)
-    print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
+    # netD.load_state_dict(torch.load('dis.pth', map_location = device))
+    # netG.load_state_dict(torch.load('gen.pth', map_location = device))
     fixed_noise = torch.randn(batch_size, noise_dim, 1, 1, device=device)
-    print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
 
-    print("Noise shape: ",fixed_noise.shape)
-    pred = netG(fixed_noise)
-    print("pred shape: ", pred.shape)
+    if verbose:
+        print("USING DEVICE:", torch.cuda.get_device_name(device))
+        print("size of images: ", sample_img.shape)
+        print(netG)
+        print("Parameter dtype: ",next(netG.parameters()).dtype)
+        print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
+        print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
 
-    out = netD(sample_img)
-    print("out shape: ", out.shape, "Output : ", out[0])
+        print("Noise shape: ",fixed_noise.shape)
+        pred = netG(fixed_noise)
+        print("pred shape: ", pred.shape)
+
+        out = netD(sample_img)
+        print("out shape: ", out.shape, "Output : ", out[0])
     # print(netD)
     # exit(0)
-
     loss = nn.BCELoss()
 
     # Establish convention for real and fake labels during training
@@ -72,12 +92,11 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
     fake_label = 0.
 
     # Setup Adam optimizers for both G and D
-    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.999))
-    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
+    optimizerD = optim.Adam(netD.parameters(), lr=lr_D, betas=(0.5, 0.999))
+    optimizerG = optim.Adam(netG.parameters(), lr=lr_G, betas=(0.5, 0.999))
 
     D_losses = []
     G_losses = []
-    # img_list = []
     #Training Loop
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
@@ -95,7 +114,6 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
             # print(output)
             error_real = loss(output, label)
             error_real.backward()
-            # optimizerD.step()
             noise = torch.randn(b_size, noise_dim, 1, 1, device=device)
             # print(noise.shape)
             fake = netG(noise)
@@ -117,16 +135,19 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
             optimizerG.step()
 
             if i % 50 ==0:
-                print( f"Epoch :{epoch} [{i}/264] LOSS: {error_G} , {error_D}")
+                print( f"Epoch :{epoch} [{i}/256] LOSS: {error_G} , {error_D}")
             D_losses.append(error_D.item())
             G_losses.append(error_G.item())
+        if epoch%10==0:
+            with torch.no_grad():
+                pred = netG(fixed_noise).detach().cpu()
+            img_save =torchvision.utils.make_grid(fake[:2], padding=2,nrow=2, normalize=True)
+            # img_save = fake[0]
+            torchvision.utils.save_image(img_save, f"./images/mv/img_17th_{epoch}.png")
+    # torch.save(netG.state_dict(), "./saved_models/gen_1.pth")
+    # torch.save(netD.state_dict(), "./saved_models/dis_1.pth")
 
-        with torch.no_grad():
-            pred = netG(fixed_noise).detach().cpu()
-        img_save =torchvision.utils.make_grid(fake, padding=2,nrow=4, normalize=True)
-        torchvision.utils.save_image(img_save, f"./images/mv/img_{epoch}.png")
-    torch.save(netG.state_dict(), "./gen.pth")
-    torch.save(netD.state_dict(), "./Des.pth")
+    #plot loss graph
     plt.figure(figsize=(10,5))
     plt.title("Generator and Discriminator Loss During Training")
     plt.plot(np.arange(len(G_losses)), G_losses ,label="G")
@@ -135,15 +156,9 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr=0.0002):
     plt.ylabel("Loss")
     plt.legend()
     # plt.show()
-    plt.savefig("./images/graph.png")
+    plt.savefig("./images/graph_g512e.png")
     
-    # plt.imshow(img_list[0].cpu())
-    # plt.show()
-    # i=0
-    # for img in img_list:
-    #     torchvision.utils.save_image(img, f"./images/mv/img_{i}.png")
-
-
+   
 def train_gan(
     epochs=10,
     batch_size=64,
@@ -244,15 +259,15 @@ def test_gan():
     Test the trained GAN by generating images.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    noise_dim = 100
-    generator = Generator(noise_dim, (1, 28, 28)).to(device)
-    generator.load_state_dict(torch.load("generator.pth", map_location=device))
+    noise_dim = 128
+    generator = Generator_cnn().to(device)
+    generator.load_state_dict(torch.load("gen.pth", map_location=device))
     generator.eval()
     with torch.no_grad():
-        z = torch.randn(25, noise_dim, device=device)
+        z = torch.randn(1, noise_dim, 1, 1, device=device)
         gen_imgs = generator(z)
-        save_image(gen_imgs.data, "images/generated_images.png", nrow=5)
-        plot_images(gen_imgs, 5)
+        save_image(gen_imgs.data, "images/generated_images.png", nrow=1)
+        # plot_images(gen_imgs, 5)
         print("Generated images saved to 'images/generated_images.png'")
 
 def save_image(tensor, filename, nrow=5):
@@ -275,5 +290,5 @@ def plot_images(images, n_rows):
     plt.show()
 
 if __name__ == "__main__":
-    train_gan_cnn(epochs=50)
+    train_gan_cnn(epochs=100, verbose= True)
     # test_gan()

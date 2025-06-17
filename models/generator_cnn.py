@@ -1,5 +1,39 @@
 import torch
 import torch.nn as nn
+
+  
+class Generator_512(nn.Module):
+    def __init__(self, latent_dim=128, nf=512):
+        super().__init__()
+        self.block = lambda x, y: [
+            nn.ConvTranspose2d(x, y, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(y),
+            nn.ReLU(True)
+        ]
+        
+        self.model = nn.Sequential(
+            # Initial projection: latent_dim → 4x4 feature map
+            nn.ConvTranspose2d(latent_dim, nf*16, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(nf*16),
+            nn.ReLU(True),
+            
+            # 7 upsampling blocks (4x4 → 512x512)
+            *self.block(nf*16, nf*8),   # 8x8
+            *self.block(nf*8, nf*4),    # 16x16
+            *self.block(nf*4, nf*2),    # 32x32
+            *self.block(nf*2, nf),      # 64x64
+            *self.block(nf, nf//2),     # 128x128
+            *self.block(nf//2, nf//4),  # 256x256
+            *self.block(nf//4, nf//8),  # 512x512 (final upsampling)
+            
+            # Output layer
+            nn.Conv2d(nf//8, 1, 3, 1, 1, bias=False),
+            nn.Tanh()
+        )
+
+    def forward(self, z):
+        return self.model(z)
+
 class Generator_cnn(nn.Module):
     """
     CNN Generator for GAN that generates 512x512 images from a 128-dimensional input.
