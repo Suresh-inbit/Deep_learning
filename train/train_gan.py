@@ -15,14 +15,16 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # sys.path.append("..")
 from utils.Dataset import Augmented
+from utils.log import Logger
 from models.generator_cnn import Generator_512 as Generator_cnn 
 from models.generator import Generator
 # from models.discriminator import Discriminator
 from models.discriminator_cnn import Discriminator_512 as Discriminator_cnn
 import torchvision
 from torchvision4ad.datasets import MVTecAD
+import time
 torch.manual_seed(99)
-def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0001, verbose = True):
+def train_gan_cnn(epochs=50, batch_size=8, noise_dim=128, lr_G=0.0002, lr_D=0.0001, verbose = True, stop = False):
     device = "cuda:1" if torch.cuda.is_available() else "cpu"
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -31,7 +33,7 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
         transforms.RandomVerticalFlip(0.5) ,
         # v2.GaussianNoise(sigma=0.04),
         transforms.Normalize([0.5], [0.5]), # normalize image with mean and standard deviation.
-        transforms.Resize((512, 512)),  # Reduce image size to save memory
+        transforms.CenterCrop((512, 512)),  # Reduce image size to save memory
     ])
 
     def weights_init(m):
@@ -60,8 +62,10 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
         torchvision.utils.save_image(sample_img[0][0].cpu(), "images/image.png")
     # exit(0)
     # Models
-    netG = Generator_cnn().to(device)
-    netD = Discriminator_cnn().to(device)
+    ngf = 52
+    ndf = 8
+    netG = Generator_cnn(nf=ngf).to(device)
+    netD = Discriminator_cnn(nf=ndf).to(device)
 
     netG.apply(weights_init)
     netD.apply(weights_init)
@@ -74,8 +78,10 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
         print("size of images: ", sample_img.shape)
         print(netG)
         print("Parameter dtype: ",next(netG.parameters()).dtype)
-        print("number of parameters in generator: ", sum(p.numel() for p in netG.parameters()), f"| Memory occupied: {sum(p.numel() for p in netG.parameters())/(2**18)} MB")
-        print("number of parameters in D: ", sum(p.numel() for p in netD.parameters()),  f"| Memory occupied: {sum(p.numel() for p in netD.parameters())/(2**18)} MB")
+        numParmsG = sum(p.numel() for p in netG.parameters())
+        numParmsD = sum(p.numel() for p in netD.parameters())
+        print("number of parameters in generator: ", numParmsG/1e6, f"| Memory occupied: {numParmsG/(2**18)} MB")
+        print("number of parameters in D: ", numParmsD/1e6 ,  f"| Memory occupied: {numParmsD/(2**18)} MB")
 
         print("Noise shape: ",fixed_noise.shape)
         pred = netG(fixed_noise)
@@ -83,13 +89,14 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
 
         out = netD(sample_img)
         print("out shape: ", out.shape, "Output : ", out[0])
-    # print(netD)
-    # exit(0)
+        print(netD)
+    if stop: exit(0)
+
     loss = nn.BCELoss()
 
     # Establish convention for real and fake labels during training
-    real_label = 1.
-    fake_label = 0.
+    real_label = 0.9
+    fake_label = 0.1
 
     # Setup Adam optimizers for both G and D
     optimizerD = optim.Adam(netD.parameters(), lr=lr_D, betas=(0.5, 0.999))
@@ -98,6 +105,7 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
     D_losses = []
     G_losses = []
     #Training Loop
+    start = time.time()
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
 
@@ -141,22 +149,24 @@ def train_gan_cnn(epochs=50, batch_size=16, noise_dim=128, lr_G=0.0004, lr_D=0.0
         if epoch%10==0:
             with torch.no_grad():
                 pred = netG(fixed_noise).detach().cpu()
-            img_save =torchvision.utils.make_grid(fake[:2], padding=2,nrow=2, normalize=True)
+            img_save =torchvision.utils.make_grid(fake[:1], padding=2,nrow=1, normalize=True)
             # img_save = fake[0]
             torchvision.utils.save_image(img_save, f"./images/mv/img_17th_{epoch}.png")
     # torch.save(netG.state_dict(), "./saved_models/gen_1.pth")
     # torch.save(netD.state_dict(), "./saved_models/dis_1.pth")
-
+    total_time = time.time() - start
+    print(" Total time: %d" % total_time)
+    Logger('Jun18', "G60_D20", epochs, lr_G, lr_D, numParmsG, numParmsD, netG, noise_dim,ngf, ndf, total_time, [G_losses, D_losses])
     #plot loss graph
     plt.figure(figsize=(10,5))
-    plt.title("Generator and Discriminator Loss During Training")
+    plt.title(f"Generator and Discriminator Loss During Training. D: {numParmsD//1e6}M,  G: {numParmsG//1e6}M")
     plt.plot(np.arange(len(G_losses)), G_losses ,label="G")
     plt.plot(np.arange(len(D_losses)), D_losses,label="D")
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
     # plt.show()
-    plt.savefig("./images/graph_g512e.png")
+    plt.savefig(f"./images/graph_{numParmsD//1e6}.png")
     
    
 def train_gan(
@@ -290,5 +300,5 @@ def plot_images(images, n_rows):
     plt.show()
 
 if __name__ == "__main__":
-    train_gan_cnn(epochs=100, verbose= True)
+    train_gan_cnn(epochs=1, verbose= True, stop = False)
     # test_gan()

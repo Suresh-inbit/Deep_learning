@@ -3,7 +3,7 @@ import torch.nn as nn
 
   
 class Generator_512(nn.Module):
-    def __init__(self, latent_dim=128, nf=512):
+    def __init__(self, latent_dim=128, nf=52):
         super().__init__()
         self.block = lambda x, y: [
             nn.ConvTranspose2d(x, y, 4, 2, 1, bias=False),
