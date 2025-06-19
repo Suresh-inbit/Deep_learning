@@ -66,7 +66,7 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr_G=0.0002, lr_D=0.00
     # exit(0)
     # Models
     ngf = 45
-    ndf = 32
+    ndf = 16
     netG = Generator_cnn(latent_dim=noise_dim, nf=ngf).to(device)
     netD = Discriminator_cnn(nf=ndf).to(device)
 
@@ -154,7 +154,7 @@ def train_gan_cnn(epochs=50, batch_size=2, noise_dim=128, lr_G=0.0002, lr_D=0.00
                 pred = netG(fixed_noise).detach().cpu()
             img_save =torchvision.utils.make_grid(fake[:1], padding=2,nrow=1, normalize=True)
             # img_save = fake[0]
-            torchvision.utils.save_image(img_save, f"./images/jun{date}/img_K3_{epoch+100}.png")
+            torchvision.utils.save_image(img_save, f"./images/jun{20}/img__{epoch}.png")
             plot_graph('tmp', f'graph_{epoch}', G_losses, D_losses, numParmsG, numParmsD)
     torch.save(netG.state_dict(), "./saved_models/gen_k3.pth")
     torch.save(netD.state_dict(), "./saved_models/dis_k3.pth")
@@ -304,5 +304,5 @@ def plot_images(images, n_rows):
     plt.show()
 
 if __name__ == "__main__":
-    train_gan_cnn(epochs=50, verbose= True, stop = True)
+    train_gan_cnn(epochs=50, verbose= True, stop = False)
     # test_gan()
