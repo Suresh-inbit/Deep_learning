@@ -1,6 +1,30 @@
 import torch.nn as nn
 
 class Discriminator_512(nn.Module):
+    def __init__(self, nc= 1, nf = 8 ):
+        super().__init__()
+        self.block = lambda x,y : [
+            nn.Conv2d(x, y, 3, 2, 1, bias=False),
+            nn.BatchNorm2d(y),
+            nn.LeakyReLU(0.2, inplace=True)
+        ]
+        self.main = nn.Sequential(
+            nn.Conv2d(nc, nf, 3, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            *self.block(nf, nf*2),
+            *self.block(nf*2, nf*4),
+            *self.block(nf*4, nf*8),
+            *self.block(nf*8, nf*16),
+            *self.block(nf*16, nf*32),
+            *self.block(nf*32, nf*64),
+            nn.Conv2d(nf*64, 1, 3, 2, 0, bias= True),
+            nn.Sigmoid()
+
+    )
+    def forward(self, x):
+        return self.main(x).view(-1, 1)
+
+class Discriminator_502(nn.Module):
     def __init__(self, nc=1, nf=8):
         super().__init__()
         # Input: (nc) x 512 x 512
@@ -41,37 +65,11 @@ class Discriminator_512(nn.Module):
 
             # (nf*64) x 4 x 4 → 1 x 1 x 1
             nn.Conv2d(nf*64, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()  # For vanilla GAN; remove for WGAN
+            nn.Sigmoid() 
         )
 
     def forward(self, x):
         return self.main(x).view(-1, 1)
-
-
-class Discriminator(nn.Module):
-    def __init__(self, image_shape, nf = 64):
-        super().__init__()
-        self.image_shape = image_shape
-        self.model=nn.Sequential(
-            nn.Conv2d(image_shape[0], nf* 4, kernel_size=4, stride=1, padding=0),
-            nn.MaxPool2d(kernel_size=2),
-            nn.ReLU(),
-            
-            nn.Conv2d(nf*4, nf*2, kernel_size=4, stride=2, padding='valid'),
-            nn.MaxPool2d(kernel_size=2),
-            nn.ReLU(),
-
-            nn.Conv2d(nf*2, nf, kernel_size=4, stride=2, padding='valid'),
-            nn.MaxPool2d(2),
-            nn.Sigmoid(),
-
-            # nn.Flatten(),
-            # nn.Linear(nf* 3* 3, 1),
-            # nn.Softmax()
-            
-        )
-    def forward(self, input):
-        return self.model(input)
 
 class Discriminator_cnn(nn.Module):
     """
@@ -124,45 +122,3 @@ class Discriminator_cnn(nn.Module):
             torch.Tensor: Classification result (real/fake) of shape (batch_size, 1, 1, 1).
         """
         return self.main(input)  # Flatten to (batch_size, 1)
-
-# class Discriminator_cnn(nn.Module):
-#     def __init__(self, image_shape, nf= 256):
-#         super(Discriminator_cnn, self).__init__()
-#         # self.ngpu = ngpu
-#         nc, ndf = 1, nf
-#         self.main = nn.Sequential(
-#             # input is ``(nc) x 64 x 64``
-#             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-#             nn.LeakyReLU(0.2, inplace=True),
-#             # state size. ``(ndf) x 32 x 32``
-#             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-#             nn.BatchNorm2d(ndf * 2),
-#             nn.LeakyReLU(0.2, inplace=True),
-#             # state size. ``(ndf*2) x 16 x 16``
-#             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-#             nn.MaxPool2d(2, 2),
-#             nn.BatchNorm2d(ndf * 4),
-#             nn.LeakyReLU(0.2, inplace=True),
-#             # state size. ``(ndf*4) x 8 x 8``
-#             nn.Conv2d(ndf * 4, ndf * 4, 4, 2, 1, bias=False),
-#             # nn.MaxPool2d(2, 2),
-#             nn.BatchNorm2d(ndf * 4),
-#             nn.LeakyReLU(0.2, inplace=True),
-
-#             # state size. ``(ndf*8) x 4 x 4``
-
-#             nn.Conv2d(ndf * 4, ndf * 4, 4, 2, 1, bias=False),
-#             nn.BatchNorm2d(ndf * 4),
-#             nn.LeakyReLU(0.2, inplace=True),
-
-
-#             nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-#             nn.BatchNorm2d(ndf * 8),
-#             nn.LeakyReLU(0.2, inplace=True),
-
-#             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-#             nn.Sigmoid()
-#         )
-
-#     def forward(self, input):
-#         return self.main(input)
