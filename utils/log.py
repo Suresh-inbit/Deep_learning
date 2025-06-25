@@ -49,6 +49,7 @@ def plot_graph(fold,fname,G_losses, D_losses, numParmsG, numParmsD):
     plt.plot(np.arange(len(G_losses)), G_losses ,label="G")
     plt.plot(np.arange(len(D_losses)), D_losses,label="D")
     plt.xlabel("iterations")
+    plt.ylim(top=10)
     plt.ylabel("Loss")
     plt.legend()
     # plt.show()
