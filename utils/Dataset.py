@@ -44,5 +44,5 @@ class Augmented(Dataset):
         w_end = (y_idx + 1) * 512 +offsety
 
         img = img[:, h_start:h_end, w_start:w_end]  # assuming C x H x W format
-
+        img = torchvision.transforms.Resize((128,128))(img)
         return img, index

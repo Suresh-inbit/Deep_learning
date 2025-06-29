@@ -29,7 +29,7 @@ import time
 from torchvision.datasets.utils import download_and_extract_archive
 date = datetime.datetime.now().day
 torch.manual_seed(99)
-def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.0001, verbose = True, stop = False):
+def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0001, lr_D=0.0004, verbose = True, stop = False):
     device = "cuda:1" if torch.cuda.is_available() else "cpu"
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -37,13 +37,13 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
         transforms.RandomHorizontalFlip(0.6), #probability
         transforms.RandomVerticalFlip(0.6) ,
         # v2.GaussianNoise(sigma=0.04),
-        transforms.RandomRotation(degrees=10, interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.RandomRotation(degrees=5, interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.Normalize([0.5], [0.5]), # normalize image with mean and standard deviation.
         # transforms.CenterCrop((512, 512)),  # Reduce image size to save memory
     ])
     # Establish convention for real and fake labels during training
     real_label = 0.9
-    fake_label = 0.01
+    fake_label = 0.1
     ngf = 128
     ndf = 64
     fixed_noise = torch.randn(batch_size, noise_dim, 1, 1, device=device)
@@ -56,16 +56,17 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
-    Comments = "Reducing features of D"
+    Comments = "reducing the size of output to 128"
     # dset = MVTecAD("MvTec", 'grid', train =True, transform=transform, download=True)
     # url_dset = "https://www.mydrive.ch/shares/38536/3830184030e49fe74747669442f0f282/download/420938133-1629953189/tile.tar.xz"
     # download_and_extract_archive(url_dset, "mvtec_ad", 'tile.tar.tz')
     # dset = ImageFolder("Datasets/MvTec/", transform=transform)
     dset = ImageFolder("Datasets/MvTec/")
-    dset = Augmented(dset, transform = transform, N=6)
+    dset = Augmented(dset, transform = transform, N=4)
     dataloader = DataLoader(dset,
-                          batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=20)
+                          batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=max(batch_size, 32))
     sample_img = next(iter(dataloader))[0].to(device)
+    img_size = sample_img.shape[-2:]
     img_info =True
     print(sample_img.shape)
     if img_info:
@@ -94,9 +95,9 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
         # print(netD)
         if device=='cuda':
             print("Generator: \n")
-            summary(netG, (128, 1, 1), 2, device=device)
+            summary(netG, (noise_dim, 1, 1), 2, device=device)
             print("Discriminator: \n")
-            summary(netD, (1, 512, 512), 2, device)
+            summary(netD, [1]+img_size, 2, device)
         print("USING DEVICE:", torch.cuda.get_device_name(device))
         print("size of images: ", sample_img.shape)
         # print("Parameter dtype: ",next(netG.parameters()).dtype)
@@ -117,11 +118,12 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
     # Implement a lr scheduler
     optimizerD = optim.Adam(netD.parameters(), lr=lr_D, betas=(0.5, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=lr_G, betas=(0.5, 0.999))
-    schedulerD = optim.lr_scheduler.StepLR(optimizerD, 50, gamma=0.5)
+    # schedulerD = optim.lr_scheduler.StepLR(optimizerD, 10, gamma=0.8)
     D_losses = []
     G_losses = []
     #Training Loop
     start = time.time()
+    Logger(0, batch_size, lr_G, lr_D, numParmsD, numParmsG, netG, noise_dim, ngf, ndf, 0, None, Comments)
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
 
@@ -132,11 +134,11 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
            
             b_size = img.size(0) # current batch size
             label = torch.full((b_size,), real_label, dtype=torch.float, device=device) # all ones because training netD with real images
-            output = netD(img).view(-1)
+            output_r = netD(img).view(-1)
             # print("Output_D shape :",output.shape, 'label shape:' , label.shape)
             # exit(0)
             # print(output)
-            error_real = loss(output, label) #1
+            error_real = loss(output_r, label) #1
             error_real.backward()
             noise = torch.randn(b_size, noise_dim, 1, 1, device=device)
             # print(noise.shape)
@@ -144,8 +146,8 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
 
             label.fill_(fake_label)
             # Classify all fake batch with D
-            output = netD(fake.detach()).view(-1)
-            error_fake = loss(output, label) # 0
+            output_f = netD(fake.detach()).view(-1)
+            error_fake = loss(output_f, label) # 0
             error_fake.backward()
             error_D = error_fake + error_real # for tracking D error
             optimizerD.step()
@@ -153,8 +155,8 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
             # (2) Update G network: 
             netG.zero_grad()
             label.fill_(real_label)  #  labels are real for generator cost est
-            output = netD(fake).view(-1)
-            error_G = loss(output, label)
+            output_f= netD(fake).view(-1)
+            error_G = loss(output_f, label)
             error_G.backward()
             optimizerG.step()
 
@@ -163,18 +165,19 @@ def train_gan_cnn(epochs=50, batch_size=4, noise_dim=128, lr_G=0.0002, lr_D=0.00
             D_losses.append(error_D.item())
             G_losses.append(error_G.item())
         if epoch%10==0:
-            save_image_intermediate(epoch, netG, noise_dim)
-            plot_graph( [G_losses, D_losses], numParmsG, numParmsD, epoch, device=device)
-        if epoch%50==0:
+            save_image_intermediate(epoch, netG, noise_dim, device=device)
+            plot_graph( [G_losses, D_losses], numParmsG, numParmsD, epoch)
+        if epoch%50==0 or epoch==epochs-1:
             save_checkpoint(epoch, netG, netD, optimizerD, optimizerG)
-        schedulerD.step()
+        # schedulerD.step()
     total_time = time.time() - start
     print(" Total time: %.2fs" % total_time)
     Logger(epochs,batch_size, lr_G, lr_D, numParmsG, numParmsD, netG, noise_dim,ngf, ndf, total_time, [G_losses, D_losses], Comments)
     
     pred_dis = netD(img)
-    pred_fake = netD(torch.randn(4, 1, 512, 512))
-    print("real output and fake output:", pred_dis, pred_fake)
+    pred_fake = netD(torch.randn(4, 1, 128, 128, device=device))
+    pred_real = netD(netG(torch.randn(4, 128, 1, 1, device = device)).detach())
+    print("real output and fake output:", pred_dis, pred_fake, pred_real)
    
 def train_gan(
     epochs=10,
@@ -307,5 +310,5 @@ def plot_images(images, n_rows):
     plt.show()
 
 if __name__ == "__main__":
-    train_gan_cnn(epochs=100,batch_size=128, verbose= True, stop = False)
+    train_gan_cnn(epochs=252,batch_size=32, verbose= True, stop = False)
     # test_gan()

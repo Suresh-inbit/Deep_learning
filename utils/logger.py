@@ -37,7 +37,7 @@ def Logger(Epochs, batch_size, lr_G, lr_D, numParmsG, numParmsD, netG, noise_dim
     
     # Store fold globally for helper functions (consider passing as argument if preferred)
     # globals()['_current_log_fold'] = 
-    globals()['_current_log_fname'] = fname
+    # globals()['_current_log_fname'] = fname
 
     # t = datetime.datetime.now()
 
@@ -53,7 +53,7 @@ def Logger(Epochs, batch_size, lr_G, lr_D, numParmsG, numParmsD, netG, noise_dim
         "num_parameters_D_M": round(numParmsD / 1e6, 2),
         "feature_multiplier_G": ngf,
         "feature_multiplier_D": ndf,
-        "max_g_loss": round(max(losses[0]), 5) if losses[0] else None, # Handle empty loss list
+        # "max_g_loss": round(max(losses[0]), 5) if losses[0] else None, # Handle empty loss list
         "time_taken_seconds": round(time_taken, 5),
         "comments": Comments
     }
@@ -68,19 +68,23 @@ Noise /Latent Dimension : {noise_dim}
 Learning Rate:        G {lr_G}, \tD {lr_D}
 Number of parameters: G {numParmsG/1e6:.2f}M, \tD {numParmsD/1e6:.2f}M
 Feature Multiplier:   G {ngf}    , \tD: {ndf}
-Maximum G Loss: {max(losses[0]): .5f}
+
 Time taken: {time_taken:.5f}s
 
 Comments:
         {Comments}
+
+netG: 
+{netG}
     """
     with open(f"{log_dir}training_summary.txt", 'w') as f:
         f.write(txt)
 
     # --- Call helper functions ---
-    plot_graph(losses, numParmsG, numParmsD, iter='all')
-    save_generated_image(log_dir, netG, noise_dim)
-    save_numpy(log_dir, losses)
+    if losses!=None:
+        plot_graph(losses, numParmsG, numParmsD, iter='all')
+        save_generated_image(log_dir, netG, noise_dim)
+        save_numpy(log_dir, losses)
 
     # --- New Feature: Save intermediate generated images (if losses is long enough) ---
     # This requires `save_image_intermediate` to be called during training loop
@@ -114,14 +118,15 @@ def plot_graph(losses, numParmsG, numParmsD, iter, Final=False):
         numParmsG (int): Number of parameters in the Generator.
         numParmsD (int): Number of parameters in the Discriminator.
     """
-    plot_dir = log_dir
-    os.makedirs(plot_dir, exist_ok=True)
-    if not Final:
-        plot_dir = f"{log_dir}plots/"
-    os.makedirs(plot_dir, exist_ok=True)
-    G_losses, D_losses = losses
-    plt.figure(figsize=(12, 6)) # Increased figure size
-    plt.title(f"Generator and Discriminator Loss During Training\nD: {numParmsD/1e6:.2f}M, G: {numParmsG/1e6:.2f}M epoch:{iter}")
+    if losses!=None:
+        plot_dir = log_dir
+        os.makedirs(plot_dir, exist_ok=True)
+        if not Final:
+            plot_dir = f"{log_dir}plots/"
+        os.makedirs(plot_dir, exist_ok=True)
+        G_losses, D_losses = losses
+        plt.figure(figsize=(12, 6)) # Increased figure size
+        plt.title(f"Generator and Discriminator Loss During Training\nD: {numParmsD/1e6:.2f}M, G: {numParmsG/1e6:.2f}M epoch:{iter}")
     
     # --- Improvement 2: Smoother plotting if data is noisy (optional) ---
     # You might want to apply a moving average for very noisy loss curves
@@ -194,7 +199,7 @@ def save_generated_image(log_dir, netG, noise_dim, device="cuda"):
 
 # --- New Feature: Save intermediate generated images during training ---
 # This function would be called inside your training loop, e.g., every `save_interval` iterations
-def save_image_intermediate(iteration, netG, noise_dim, num_samples=4, device="cuda"):
+def save_image_intermediate(iteration, netG, noise_dim, num_samples=9, device="cuda"):
     """
     Saves a grid of generated images at a specific iteration.
     Requires `_current_log_fold` and `_current_log_fname` to be set by Logger().
@@ -211,27 +216,9 @@ def save_image_intermediate(iteration, netG, noise_dim, num_samples=4, device="c
     noise = torch.randn(num_samples, noise_dim, 1, 1, device=device)
     with torch.no_grad():
         pred = netG(noise).detach().cpu()
-    img_save =make_grid(pred, padding=2,nrow=2, normalize=True)
+    img_save =make_grid(pred, padding=2,nrow=int(num_samples**0.5), normalize=True)
             # img_save = fake[0]
     save_image(img_save, f"{img_dir}image{iteration}.png")
-    # netG.eval()
-    # try:
-    #     model_device = next(netG.parameters()).device if hasattr(netG, 'parameters') and len(list(netG.parameters())) > 0 else torch.device("cpu")
-    #     noise = torch.randn(num_samples, noise_dim, 1, 1).to(model_device)
-    #     with torch.no_grad():
-    #         images = netG(noise).cpu()
-
-    #     # If it's a single channel image (e.g., MNIST), ensure it's (N, 1, H, W) for save_image
-    #     if images.ndim == 3: # If it came out as (N, H, W)
-    #          images = images.unsqueeze(1) # Make it (N, 1, H, W)
-
-    #     save_image(images, f"{log_dir}iter_{iteration:06d}.png", normalize=True, value_range=(-1, 1), nrow=int(num_samples**0.5))
-    #     # print(f"Intermediate images saved at iteration {iteration} to {log_dir}iter_{iteration:06d}.png")
-    # except Exception as e:
-    #     print(f"Warning: Could not save intermediate images at iteration {iteration}. Error: {e}")
-    # finally:
-    #     netG.train()
-
 
 # --- New Feature: Save Model Checkpoints ---
 # This function would also be called inside your training loop

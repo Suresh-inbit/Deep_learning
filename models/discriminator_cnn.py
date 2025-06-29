@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.utils.spectral_norm as spectral_norm
 
 class Discriminator_512(nn.Module):
     def __init__(self, nc= 1, nf = 8 ):
@@ -15,9 +16,9 @@ class Discriminator_512(nn.Module):
             *self.block(nf*2, nf*4),
             *self.block(nf*4, nf*8),
             *self.block(nf*8, nf*16),
-            *self.block(nf*16, nf*32),
+            # *self.block(nf*16, nf*32),
             # *self.block(nf*32, nf*64),
-            nn.Conv2d(nf*32, 1, 4, 1, 0, bias= True), 
+            nn.Conv2d(nf*16, 1, 4, 1, 0, bias= True), 
             nn.Sigmoid()
 
     )
