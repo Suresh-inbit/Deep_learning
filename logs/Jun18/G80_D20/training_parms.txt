@@ -1,0 +1,12 @@
+Number of Epochs: 100
+Noise Dimension: 128
+Learning Rate:        G 2e-05, 	D 1e-05
+Number of parameters: G 84.492017M, 	D 21.169544M
+Feature Multiplier:   G 170    , 	D: 22
+Maximum G Loss:  13.36770
+Time taken: 966.58889s
+
+Comments:
+        Changed Mean for initaialization of weights in BatchNorm to 1 from 0
+
+    

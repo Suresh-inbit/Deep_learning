@@ -1,0 +1,12 @@
+Number of Epochs: 100
+Noise Dimension: 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 84.492017M, 	D 6.305424M
+Feature Multiplier:   G 170    , 	D: 12
+Maximum G Loss:  3.81873
+Time taken: 1714.84926s
+
+Comments:
+        Increased Latent dimension to 256
+
+    

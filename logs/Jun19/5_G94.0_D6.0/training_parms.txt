@@ -1,0 +1,14 @@
+DATE : 2025-06-19 12:55:15.131817 
+
+Number of Epochs: 50 | Batch size: 2
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 94.36239M, 	D 6.303313M
+Feature Multiplier:   G 45    , 	D: 16
+Maximum G Loss:  11.75376
+Time taken: 772.54914s
+
+Comments:
+        Changed kernel size to 3 only on discriminator, increaded num features in generator
+
+    

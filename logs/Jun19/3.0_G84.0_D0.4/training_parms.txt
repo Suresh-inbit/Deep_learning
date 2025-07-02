@@ -1,0 +1,14 @@
+DATE : 2025-06-19 07:12:55.120982 
+
+Number of Epochs: 150 | Batch size: 2
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 84.492017M, 	D 0.396996M
+Feature Multiplier:   G 170    , 	D: 3
+Maximum G Loss:  5.68056
+Time taken: 2737.07298s
+
+Comments:
+        reduced num of D params to 400k
+
+    

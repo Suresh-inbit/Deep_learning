@@ -1,0 +1,15 @@
+{
+    "date": "2025-06-25 05:27:27",
+    "epochs": 11,
+    "batch_size": 32,
+    "noise_dimension": 128,
+    "learning_rate_G": 0.0002,
+    "learning_rate_D": 0.0001,
+    "num_parameters_G_M": 73.28,
+    "num_parameters_D_M": 1.1,
+    "feature_multiplier_G": 52,
+    "feature_multiplier_D": 5,
+    "max_g_loss": 4.88592,
+    "time_taken_seconds": 136.92591,
+    "comments": "Reducing features of D"
+}

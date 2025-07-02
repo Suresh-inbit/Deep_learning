@@ -1,0 +1,14 @@
+{
+    "date": "2025-06-26 07:03:20",
+    "epochs": 252,
+    "batch_size": 12,
+    "noise_dimension": 128,
+    "learning_rate_G": 0.0002,
+    "learning_rate_D": 0.0001,
+    "num_parameters_G_M": 73.28,
+    "num_parameters_D_M": 25.19,
+    "feature_multiplier_G": 52,
+    "feature_multiplier_D": 24,
+    "time_taken_seconds": 1739.95773,
+    "comments": "-"
+}

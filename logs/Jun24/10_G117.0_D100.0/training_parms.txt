@@ -1,0 +1,14 @@
+DATE : 2025-06-24 17:38:45.561996 
+
+Number of Epochs: 100 | Batch size: 4
+Noise /Latent Dimension : 256
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 117.450976M, 	D 100.679233M
+Feature Multiplier:   G 64    , 	D: 48
+Maximum G Loss:  90.00000
+Time taken: 1275.41130s
+
+Comments:
+        Replacing convtranspose with upsampling, reduced data sample size 4 to 3.
+
+    

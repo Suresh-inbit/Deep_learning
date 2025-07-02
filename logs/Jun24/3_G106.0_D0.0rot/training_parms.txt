@@ -1,0 +1,15 @@
+DATE : 2025-06-24 07:51:59.470085 
+
+Number of Epochs: 100 | Batch size: 2
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0008, 	D 0.0001
+Number of parameters: G 106.943136M, 	D 0.702257M
+Feature Multiplier:   G 48    , 	D: 4
+Maximum G Loss:  4.65476
+Time taken: 929.76796s
+
+Comments:
+        Added noise to input of discriminator<- this doesnt improve results. Making many arbitary changes. 
+                 using rotated dataset.
+
+    

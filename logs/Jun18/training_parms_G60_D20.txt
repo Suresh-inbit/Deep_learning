@@ -1,0 +1,15 @@
+Number of Epochs: 150
+Noise Dimension: 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 75.15406M, 	D 21.169544M
+Feature Multiplier:   G 160    , 	D: 22
+Maximum G Loss:  4.39665
+Time taken: 1367.77806s
+
+Augmentation: 
+    RandomFlip(Horizontal, Vertical)
+    CenterCrop((512, 512))
+    Normalization(0.5, 0.5)
+    
+    
+    

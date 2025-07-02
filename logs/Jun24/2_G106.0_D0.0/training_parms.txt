@@ -1,0 +1,14 @@
+DATE : 2025-06-24 07:17:58.789282 
+
+Number of Epochs: 100 | Batch size: 2
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 106.943136M, 	D 0.395653M
+Feature Multiplier:   G 48    , 	D: 3
+Maximum G Loss:  4.20537
+Time taken: 687.52895s
+
+Comments:
+        Updating G after multiple passes, Added noise to input of discriminator
+
+    

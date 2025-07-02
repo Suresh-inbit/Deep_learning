@@ -1,0 +1,12 @@
+DATE : 2025-06-26 04:40:33 
+Number of Epochs: 0 | Batch size: 16
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0004, 	D 0.0001
+Number of parameters: G 6.31M, 	D 40.48M
+Feature Multiplier:   G 38    , 	D: 12
+
+Time taken: 0.00000s
+
+Comments:
+        Reducing features of D
+    

@@ -1,0 +1,51 @@
+DATE : 2025-06-26 07:03:20 
+Number of Epochs: 252 | Batch size: 12
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 73.28M, 	D 25.19M
+Feature Multiplier:   G 52    , 	D: 24
+
+Time taken: 1739.95773s
+
+Comments:
+        -
+
+netG: 
+Generator_512(
+  (model): Sequential(
+    (0): ConvTranspose2d(128, 3328, kernel_size=(4, 4), stride=(1, 1), bias=False)
+    (1): BatchNorm2d(3328, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): ReLU(inplace=True)
+    (3): Upsample(scale_factor=2.0, mode='nearest')
+    (4): Conv2d(3328, 1664, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (5): BatchNorm2d(1664, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (6): ReLU(inplace=True)
+    (7): Upsample(scale_factor=2.0, mode='nearest')
+    (8): Conv2d(1664, 832, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (9): BatchNorm2d(832, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (10): ReLU(inplace=True)
+    (11): Upsample(scale_factor=2.0, mode='nearest')
+    (12): Conv2d(832, 416, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (13): BatchNorm2d(416, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (14): ReLU(inplace=True)
+    (15): Upsample(scale_factor=2.0, mode='nearest')
+    (16): Conv2d(416, 208, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (17): BatchNorm2d(208, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (18): ReLU(inplace=True)
+    (19): Upsample(scale_factor=2.0, mode='nearest')
+    (20): Conv2d(208, 104, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (21): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (22): ReLU(inplace=True)
+    (23): Upsample(scale_factor=2.0, mode='nearest')
+    (24): Conv2d(104, 52, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (25): BatchNorm2d(52, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (26): ReLU(inplace=True)
+    (27): Upsample(scale_factor=2.0, mode='nearest')
+    (28): Conv2d(52, 26, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (29): BatchNorm2d(26, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (30): ReLU(inplace=True)
+    (31): Conv2d(26, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (32): Tanh()
+  )
+)
+    

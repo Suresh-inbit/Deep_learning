@@ -1,0 +1,12 @@
+Number of Epochs: 100
+Noise Dimension: 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 84.492017M, 	D 2.805856M
+Feature Multiplier:   G 170    , 	D: 8
+Maximum G Loss:  9.30920
+Time taken: 1747.05590s
+
+Comments:
+        Weight init to 0. again
+
+    

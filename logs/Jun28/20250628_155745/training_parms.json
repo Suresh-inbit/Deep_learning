@@ -1,0 +1,14 @@
+{
+    "date": "2025-06-28 15:57:45",
+    "epochs": 252,
+    "batch_size": 32,
+    "noise_dimension": 128,
+    "learning_rate_G": 0.0001,
+    "learning_rate_D": 0.0004,
+    "num_parameters_G_M": 29.34,
+    "num_parameters_D_M": 11.16,
+    "feature_multiplier_G": 128,
+    "feature_multiplier_D": 64,
+    "time_taken_seconds": 885.5606,
+    "comments": "reducing the size of output to 128"
+}

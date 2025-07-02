@@ -1,0 +1,27 @@
+DATE : 2025-06-24 16:04:44.102897 
+
+Number of Epochs: 100 | Batch size: 8
+Noise /Latent Dimension : 128
+Learning Rate:        G 0.0002, 	D 0.0001
+Number of parameters: G 109.062368M, 	D 100.678897M
+Feature Multiplier:   G 64    , 	D: 48
+Maximum G Loss:  61.21132
+Time taken: 932.71190s
+
+Comments:
+        Replacing convtranspose with upsampling
+
+        current:
+        self.block = lambda in_channels, out_channels: [
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False), 
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(True)
+        ]
+        prev:
+        self.block = lambda x, y: [
+            nn.ConvTranspose2d(x, y, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(y),
+            nn.ReLU(True)
+        ]
+        
