@@ -1,9 +1,6 @@
-data/
-*.pth
-# images/
-# models/__pycache__/
 Datasets/
 dcgan_faces_tutorial.ipynb
-# saved_models/
 */__pycache__/
 images/
+saved_models/
+mvtec_ad/
