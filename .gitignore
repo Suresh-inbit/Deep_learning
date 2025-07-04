@@ -4,3 +4,5 @@ dcgan_faces_tutorial.ipynb
 images/
 saved_models/
 mvtec_ad/
+logs/*/*/checkpoints/*.pth
+
