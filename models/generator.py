@@ -39,24 +39,41 @@ class Generator(nn.Module):
         img = img.view(z.size(0), *self.img_shape)
         return img
 class Generator_cnn(nn.Module):
-    def __init__(self, latent_dim = 128, image_shape=(1, 28, 28)):
+    """
+    DCGAN-style generator: projects the noise vector to a small feature map,
+    then upsamples it 4x with transposed convolutions.
+    Image height and width must be divisible by 4 (e.g. 28x28 -> 7x7 start).
+    """
+    def __init__(self, latent_dim=100, image_shape=(1, 28, 28)):
         super(Generator_cnn, self).__init__()
+        channels, height, width = image_shape
+        if height % 4 or width % 4:
+            raise ValueError(f"image height and width must be divisible by 4, got {image_shape}")
         self.latent_dim = latent_dim
         self.image_shape = image_shape
+        self.init_shape = (256, height // 4, width // 4)
+        self.project = nn.Sequential(
+            nn.Linear(latent_dim, int(torch.prod(torch.tensor(self.init_shape)))),
+            nn.BatchNorm1d(int(torch.prod(torch.tensor(self.init_shape)))),
+            nn.ReLU(True),
+        )
         self.model = nn.Sequential(
-            nn.Conv2d(latent_dim, latent_dim * 4, kernel_size=4, stride=1, padding=1),
-            nn.BatchNorm2d(latent_dim * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim * 4, latent_dim * 2, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(latent_dim * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim * 2, latent_dim, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(latent_dim, image_shape[0], kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),  # x2
+            nn.BatchNorm2d(128),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),   # x4
+            nn.BatchNorm2d(64),
+            nn.ReLU(True),
+            nn.Conv2d(64, channels, kernel_size=3, stride=1, padding=1),
             nn.Tanh()
         )
+
     def forward(self, z):
-        img = self.model(z)
-        img = img.view(z.size(0), *self.image_shape)
-        return img
+        """
+        Args:
+            z (torch.Tensor): Noise of shape (batch_size, latent_dim).
+        Returns:
+            torch.Tensor: Images of shape (batch_size, *image_shape).
+        """
+        x = self.project(z).view(z.size(0), *self.init_shape)
+        return self.model(x)

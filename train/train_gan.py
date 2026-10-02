@@ -1,21 +1,26 @@
 """
 Training script for GAN using PyTorch.
+
+Usage:
+    python train/train_gan.py --epochs 50
+    python train/train_gan.py --test-only
 """
+import argparse
+import os
+import sys
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import datasets, transforms
+from torchvision import datasets
 from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# sys.path.append("..")
-from models.generator import Generator_cnn as Generator
+from models.generator import Generator, Generator_cnn
 from models.discriminator import Discriminator
-import torchvision
-from torchvision4ad.datasets import MVTecAD
+from utils import get_device, get_transform, plot_images, plot_losses, save_image_grid, set_seed
+
+GENERATORS = {"mlp": Generator, "cnn": Generator_cnn}
 
 
 def train_gan(
@@ -23,44 +28,33 @@ def train_gan(
     batch_size=64,
     noise_dim=100,
     lr=0.0002,
+    generator_type="cnn",
+    data_dir="data",
+    checkpoint_dir="checkpoints",
+    image_dir="images",
+    num_workers=4,
     device=None
 ):
     """
     Train a simple GAN on MNIST dataset.
     """
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    os.makedirs("images", exist_ok=True)
+    device = get_device(device)
+    os.makedirs(image_dir, exist_ok=True)
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
     # Data loader
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Grayscale(),
-        transforms.Normalize([0.5], [0.5]),
-        # transforms.Resize((256, 256)),  # Reduce image size to save memory
-    ])
     dataloader = DataLoader(
-        datasets.MNIST("data", train=True, download=True, transform=transform),
-        batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=4
+        datasets.MNIST(data_dir, train=True, download=True, transform=get_transform()),
+        batch_size=batch_size, shuffle=True, pin_memory=(device == "cuda"), num_workers=num_workers
     )
-    # print("size of images: ", dataloader.dataset[0][0].shape)
-    img_shape = dataloader.dataset[0][0].shape
-    # batch_size = 2  # Reduce batch size to save memory
-    # dataset = MVTecAD("MVTec", 'grid', train=True, transform=transform, download=True)
-    # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    # print("size of images: ", dataset[1][0].shape)
-    # img_shape = dataset[0][0].shape
-    # plt.imshow(dataset[0][0].numpy().squeeze(), cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-    # print("label of images: ", [i[1] for i in dataset])
-    # print("size of images: ", img_shape)
-    # exit(0)
+    img_shape = tuple(dataloader.dataset[0][0].shape)
+
     # Models
-    generator = Generator(noise_dim, img_shape).to(device)
+    generator = GENERATORS[generator_type](noise_dim, img_shape).to(device)
     discriminator = Discriminator(img_shape).to(device)
     print("number of parameters in generator: ", sum(p.numel() for p in generator.parameters()))
     # Loss and optimizers
-    adversarial_loss = nn.BCELoss()
+    adversarial_loss = nn.BCEWithLogitsLoss()
     optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
     optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 
@@ -93,57 +87,76 @@ def train_gan(
             d_losses.append(d_loss.item())
 
             if i == len(dataloader) - 1:
-                print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(dataloader)}] "
+                print(f"[Epoch {epoch + 1}/{epochs}] [Batch {i + 1}/{len(dataloader)}] "
                       f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}]")
-                save_image(gen_imgs.data[:25], f"images/{epoch}_{i}.png", nrow=5)
+                save_image_grid(gen_imgs[:25], os.path.join(image_dir, f"epoch_{epoch + 1}.png"), nrow=5)
 
-    # Plot losses after training
-    torch.save(generator.state_dict(), "generator.pth")
-    plt.figure(figsize=(10,5))
-    plt.plot(g_losses, label='Generator Loss')
-    plt.plot(d_losses, label='Discriminator Loss')
-    plt.xlabel('Iteration')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.title('GAN Training Losses')
-    plt.savefig('images/loss_curve.png')
-    plt.close()
+    # Save the generator with the settings needed to rebuild it
+    checkpoint_path = os.path.join(checkpoint_dir, "generator.pth")
+    torch.save({
+        "state_dict": generator.state_dict(),
+        "generator_type": generator_type,
+        "noise_dim": noise_dim,
+        "img_shape": img_shape,
+    }, checkpoint_path)
+    print(f"Generator saved to '{checkpoint_path}'")
 
-def test_gan():
+    plot_losses({"Generator Loss": g_losses, "Discriminator Loss": d_losses},
+                os.path.join(image_dir, "gan_loss_curve.png"), "GAN Training Losses")
+    return generator
+
+
+def test_gan(checkpoint_dir="checkpoints", image_dir="images", num_images=25, device=None):
     """
     Test the trained GAN by generating images.
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    noise_dim = 100
-    generator = Generator(noise_dim, (1, 28, 28)).to(device)
-    generator.load_state_dict(torch.load("generator.pth", map_location=device))
+    device = get_device(device)
+    os.makedirs(image_dir, exist_ok=True)
+    checkpoint = torch.load(os.path.join(checkpoint_dir, "generator.pth"), map_location=device)
+    noise_dim = checkpoint["noise_dim"]
+    generator = GENERATORS[checkpoint["generator_type"]](noise_dim, checkpoint["img_shape"]).to(device)
+    generator.load_state_dict(checkpoint["state_dict"])
     generator.eval()
     with torch.no_grad():
-        z = torch.randn(25, noise_dim, device=device)
+        z = torch.randn(num_images, noise_dim, device=device)
         gen_imgs = generator(z)
-        save_image(gen_imgs.data, "images/generated_images.png", nrow=5)
-        plot_images(gen_imgs, 5)
-        print("Generated images saved to 'images/generated_images.png'")
+    output_path = os.path.join(image_dir, "generated_images.png")
+    plot_images(gen_imgs, output_path)
+    print(f"Generated images saved to '{output_path}'")
 
-def save_image(tensor, filename, nrow=5):
-    """
-    Save a grid of images.
-    """
-    grid = torchvision.utils.make_grid(tensor, nrow=nrow, normalize=True)
-    # ndarr = grid.mul(127.5).add(127.5).clamp(0,255).byte().cpu().numpy()
-    plt.imsave(filename, np.transpose(grid.cpu().numpy(), (1,2,0)))
 
-def plot_images(images, n_rows):
-    """
-    Plot a grid of images.
-    """
-    plt.figure(figsize=(10, 10))
-    for i in range(n_rows * n_rows):
-        ax = plt.subplot(5, 5, i + 1)
-        plt.imshow(images[i].cpu().numpy().squeeze(), cmap='gray')
-        plt.axis('off')
-    plt.show()
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train a GAN on MNIST.")
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--noise-dim", type=int, default=100)
+    parser.add_argument("--lr", type=float, default=0.0002)
+    parser.add_argument("--generator", choices=sorted(GENERATORS), default="cnn")
+    parser.add_argument("--data-dir", default="data")
+    parser.add_argument("--checkpoint-dir", default="checkpoints")
+    parser.add_argument("--image-dir", default="images")
+    parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--device", default=None, help="cpu or cuda (default: cuda if available)")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--test-only", action="store_true",
+                        help="skip training and generate images from the saved checkpoint")
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    train_gan(epochs=50)
-    test_gan()
+    args = parse_args()
+    set_seed(args.seed)
+    if not args.test_only:
+        train_gan(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            noise_dim=args.noise_dim,
+            lr=args.lr,
+            generator_type=args.generator,
+            data_dir=args.data_dir,
+            checkpoint_dir=args.checkpoint_dir,
+            image_dir=args.image_dir,
+            num_workers=args.num_workers,
+            device=args.device,
+        )
+    test_gan(checkpoint_dir=args.checkpoint_dir, image_dir=args.image_dir, device=args.device)

@@ -1,4 +1,14 @@
+# Datasets (downloaded automatically by torchvision)
 data/
-*.pth
+fdata/
+
+# Training outputs
+checkpoints/
 images/
-*/__pycache__
+*.pth
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

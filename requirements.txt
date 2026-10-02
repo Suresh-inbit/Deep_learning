@@ -2,5 +2,6 @@
 
 torch
 torchvision
+torchmetrics
 matplotlib
 numpy

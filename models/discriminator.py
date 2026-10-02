@@ -10,6 +10,7 @@ class Discriminator(nn.Module):
     """
     def __init__(self, img_shape=(1, 28, 28)):
         super().__init__()
+        # Outputs raw logits; pair with nn.BCEWithLogitsLoss for numerical stability
         self.model = nn.Sequential(
             nn.Linear(int(torch.prod(torch.tensor(img_shape))), 1024),
             nn.LeakyReLU(0.2, inplace=True),
@@ -18,7 +19,6 @@ class Discriminator(nn.Module):
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(256, 1),
-            nn.Sigmoid()
         )
 
     def forward(self, img):
@@ -27,7 +27,7 @@ class Discriminator(nn.Module):
         Args:
             img (torch.Tensor): Input image tensor.
         Returns:
-            torch.Tensor: Probability of image being real.
+            torch.Tensor: Logit of the image being real (apply sigmoid for a probability).
         """
         img_flat = img.view(img.size(0), -1)
         validity = self.model(img_flat)
